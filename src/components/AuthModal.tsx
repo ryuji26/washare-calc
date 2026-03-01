@@ -19,7 +19,7 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { type User, type AuthModalMode } from "@/types"
-import { supabase } from "@/lib/supabase"
+import { createClient } from "@/utils/supabase/client"
 import { fetchUserProfile, updateUserProfile } from "@/lib/storage"
 
 // 都道府県リスト
@@ -59,6 +59,7 @@ export const AuthModal = ({ mode, onClose, onLogin }: AuthModalProps) => {
     const handleLogin = async () => {
         if (!loginEmail || !loginPassword) return
         setIsLoading(true)
+        const supabase = createClient()
         try {
             const { data: authData, error } = await supabase.auth.signInWithPassword({
                 email: loginEmail,
@@ -88,6 +89,7 @@ export const AuthModal = ({ mode, onClose, onLogin }: AuthModalProps) => {
     const handleRegister = async () => {
         if (!regEmail || !regPassword || !regName || !regArea) return
         setIsLoading(true)
+        const supabase = createClient()
         try {
             const { data: authData, error } = await supabase.auth.signUp({
                 email: regEmail,
@@ -120,11 +122,12 @@ export const AuthModal = ({ mode, onClose, onLogin }: AuthModalProps) => {
     // Googleログイン処理
     const handleGoogleLogin = async () => {
         setIsLoading(true)
+        const supabase = createClient()
         try {
             const { error } = await supabase.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
-                    redirectTo: window.location.origin,
+                    redirectTo: `${window.location.origin}/auth/callback`,
                 }
             })
             if (error) throw error

@@ -1,7 +1,9 @@
-import { supabase } from "./supabase"
+import { createClient } from "@/utils/supabase/client"
 import { type User, type SavedEstimate, type EstimateFormData, type PublicEstimate } from "@/types"
 import { WASH_PROCESSES, VEHICLE_SIZES } from "@/lib/constants"
 import { calculateEstimate } from "@/lib/calculator"
+
+const supabase = createClient()
 
 // ---------------------------------------------------------
 // Profile (User) API

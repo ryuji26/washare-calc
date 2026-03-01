@@ -9,7 +9,7 @@ import { MyPage } from "@/components/MyPage"
 import { BottomTabBar } from "@/components/BottomTabBar"
 import { ExploreFeed } from "@/components/ExploreFeed"
 import { DEFAULT_FORM_DATA } from "@/lib/constants"
-import { supabase } from "@/lib/supabase"
+import { createClient } from "@/utils/supabase/client"
 import {
   fetchUserProfile,
   updateUserProfile,
@@ -56,6 +56,7 @@ const Page = () => {
     fetchPublicEstimates().then(setPublicEstimates)
 
     // Supabase Auth の状態監視
+    const supabase = createClient()
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (session?.user) {
@@ -138,6 +139,7 @@ const Page = () => {
 
   // ログアウト
   const handleLogout = useCallback(async () => {
+    const supabase = createClient()
     await supabase.auth.signOut()
     setUser(null)
     setEstimates([])
