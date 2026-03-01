@@ -128,16 +128,27 @@ export const AuthModal = ({ mode, onClose, onLogin }: AuthModalProps) => {
                 provider: 'google',
                 options: {
                     redirectTo: `${window.location.origin}/auth/callback`,
+                    // SupabaseSDK内の自動リダイレクトと手動リダイレクトがChromeで競合してキャンセルされるのを防ぐため明示的にtrue
+                    skipBrowserRedirect: true,
                 }
             })
-            if (error) throw error
+
+            if (error) {
+                alert(`Supabase Auth Error: ${error.message}`);
+                throw error;
+            }
 
             if (data?.url) {
+                // デバッグ用: URLが取得できているか確認（不要になったら消す）
+                // alert(`Redirecting to: ${data.url.substring(0, 50)}...`);
                 window.location.href = data.url
+            } else {
+                alert("エラー: リダイレクト先のURLが取得できませんでした。\n(data.url is empty)");
+                setIsLoading(false);
             }
         } catch (e: any) {
             console.error("Google Login Error:", e)
-            alert(e.message || "Googleログインに失敗しました")
+            alert("例外エラー: " + (e?.message || "Googleログインに失敗しました"))
             setIsLoading(false)
         }
     }
