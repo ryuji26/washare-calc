@@ -144,6 +144,10 @@ const Page = () => {
     setUser(null)
     setEstimates([])
     handleTabChange("input")
+
+    // Safari等でSSRセッションCookieが正しくクリアされたことをブラウザに反映させるため
+    // 強制的にフルリロードを行います
+    window.location.reload()
   }, [handleTabChange])
 
   // 見積もり保存
