@@ -30,4 +30,26 @@ export type CalculationResult = {
 }
 
 // 画面表示モード
-export type ViewMode = "input" | "preview"
+export type ViewMode = "input" | "preview" | "mypage"
+
+// 認証モーダルの状態
+export type AuthModalMode = "login" | "register" | null
+
+// ユーザー情報
+export type User = {
+    id: string
+    email: string
+    displayName: string // 屋号またはニックネーム
+    area: string        // 活動エリア（都道府県）
+    createdAt: string
+}
+
+// 保存された見積もり
+export type SavedEstimate = {
+    id: string
+    formData: EstimateFormData
+    totalPrice: number
+    processNames: string[]
+    vehicleSizeLabel: string
+    createdAt: string
+}

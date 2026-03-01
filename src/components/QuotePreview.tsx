@@ -5,14 +5,23 @@ import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { WASH_PROCESSES, VEHICLE_SIZES, CATEGORY_ICONS } from "@/lib/constants"
 import { calculateEstimate, formatPrice } from "@/lib/calculator"
-import { type EstimateFormData } from "@/types"
+import { type EstimateFormData, type User } from "@/types"
 
 type QuotePreviewProps = {
     formData: EstimateFormData
+    user: User | null
     onBack: () => void
+    onSave: () => void
+    onOpenAuth: () => void
 }
 
-export const QuotePreview = ({ formData, onBack }: QuotePreviewProps) => {
+export const QuotePreview = ({
+    formData,
+    user,
+    onBack,
+    onSave,
+    onOpenAuth,
+}: QuotePreviewProps) => {
     const quoteRef = useRef<HTMLDivElement>(null)
 
     // 計算結果
@@ -49,7 +58,6 @@ export const QuotePreview = ({ formData, onBack }: QuotePreviewProps) => {
         if (!quoteRef.current) return
 
         try {
-            // html2canvasを動的にインポート
             const html2canvas = (await import("html2canvas")).default
             const canvas = await html2canvas(quoteRef.current, {
                 backgroundColor: "#ffffff",
@@ -58,11 +66,9 @@ export const QuotePreview = ({ formData, onBack }: QuotePreviewProps) => {
                 logging: false,
             })
 
-            // canvasからBlobを生成
             canvas.toBlob(async (blob) => {
                 if (!blob) return
 
-                // Web Share APIが使えるなら使う（モバイル向け）
                 if (navigator.share && navigator.canShare) {
                     const file = new File([blob], "washare-estimate.png", {
                         type: "image/png",
@@ -82,7 +88,6 @@ export const QuotePreview = ({ formData, onBack }: QuotePreviewProps) => {
                     }
                 }
 
-                // フォールバック: 画像をダウンロード
                 const url = URL.createObjectURL(blob)
                 const a = document.createElement("a")
                 a.href = url
@@ -97,34 +102,6 @@ export const QuotePreview = ({ formData, onBack }: QuotePreviewProps) => {
 
     return (
         <div className="min-h-screen bg-neutral-100">
-            {/* ナビゲーションバー */}
-            <div className="sticky top-0 z-50 border-b border-neutral-200 bg-white/90 backdrop-blur-xl">
-                <div className="mx-auto flex max-w-lg items-center gap-3 px-4 py-3">
-                    <button
-                        type="button"
-                        onClick={onBack}
-                        className="flex h-9 w-9 items-center justify-center rounded-full bg-neutral-100 text-neutral-600 transition-colors hover:bg-neutral-200"
-                    >
-                        <svg
-                            className="h-5 w-5"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M15 19l-7-7 7-7"
-                            />
-                        </svg>
-                    </button>
-                    <span className="text-sm font-semibold text-neutral-800">
-                        見積書プレビュー
-                    </span>
-                </div>
-            </div>
-
             {/* 見積書本体（画像変換対象） */}
             <div className="mx-auto max-w-lg px-4 py-6">
                 <div
@@ -133,12 +110,10 @@ export const QuotePreview = ({ formData, onBack }: QuotePreviewProps) => {
                 >
                     {/* ヘッダー（ロゴ・ブランド部分） */}
                     <div className="relative overflow-hidden bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 px-6 pb-8 pt-8">
-                        {/* 背景装飾 */}
                         <div className="absolute -right-8 -top-8 h-40 w-40 rounded-full bg-gradient-to-br from-cyan-500/10 to-blue-600/10 blur-3xl" />
                         <div className="absolute -bottom-4 -left-8 h-32 w-32 rounded-full bg-gradient-to-tr from-cyan-500/5 to-transparent blur-2xl" />
 
                         <div className="relative">
-                            {/* ブランド */}
                             <div className="mb-5 flex items-center gap-2.5">
                                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-400 to-blue-500 shadow-lg shadow-cyan-500/20">
                                     <span className="text-sm">💧</span>
@@ -153,7 +128,6 @@ export const QuotePreview = ({ formData, onBack }: QuotePreviewProps) => {
                                 </div>
                             </div>
 
-                            {/* 見積書タイトル */}
                             <div className="mb-1 text-[11px] uppercase tracking-[0.2em] text-neutral-400">
                                 Estimate
                             </div>
@@ -207,11 +181,9 @@ export const QuotePreview = ({ formData, onBack }: QuotePreviewProps) => {
                             {selectedProcesses.map((process, index) => (
                                 <div key={process.id}>
                                     <div className="flex items-center gap-3 py-2.5">
-                                        {/* ステップ番号 */}
                                         <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-neutral-100 to-neutral-50 text-xs font-bold text-neutral-500 ring-1 ring-neutral-200/50">
                                             {index + 1}
                                         </div>
-                                        {/* 工程名 */}
                                         <div className="flex items-center gap-2">
                                             <span className="text-sm">
                                                 {CATEGORY_ICONS[process.category]}
@@ -244,20 +216,32 @@ export const QuotePreview = ({ formData, onBack }: QuotePreviewProps) => {
 
                 {/* アクションボタン */}
                 <div className="mt-6 space-y-3 pb-8">
+                    {/* 見積もりを保存するボタン */}
+                    <Button
+                        onClick={user ? onSave : onOpenAuth}
+                        variant="outline"
+                        className="h-12 w-full rounded-xl border-cyan-500/30 bg-cyan-500/5 text-sm font-semibold text-cyan-600 hover:bg-cyan-500/10"
+                    >
+                        <svg className="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                        </svg>
+                        {user
+                            ? "この見積もりを保存する"
+                            : "この見積もりを保存する（※要ログイン）"}
+                    </Button>
+
+                    {/* LINE送信ボタン */}
                     <Button
                         onClick={handleSaveImage}
                         className="h-14 w-full rounded-xl bg-gradient-to-r from-[#06C755] to-[#05b34e] text-base font-bold text-white shadow-lg shadow-[#06C755]/25 transition-all hover:shadow-[#06C755]/40"
                     >
-                        <svg
-                            className="mr-2 h-5 w-5"
-                            fill="currentColor"
-                            viewBox="0 0 24 24"
-                        >
+                        <svg className="mr-2 h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M12 2C6.48 2 2 5.82 2 10.5c0 2.93 1.95 5.5 4.85 6.97.22.1.37.32.37.56 0 .65-.42 2.37-.48 2.73-.08.45.17.88.62.88.16 0 .32-.05.45-.15.52-.38 2.68-1.7 3.8-2.43.45.06.91.09 1.39.09 5.52 0 10-3.82 10-8.5S17.52 2 12 2z" />
                         </svg>
-                        画像を保存してLINEで送る
+                        画像を保存 / LINEで送る
                     </Button>
 
+                    {/* 編集に戻るボタン */}
                     <Button
                         onClick={onBack}
                         variant="outline"

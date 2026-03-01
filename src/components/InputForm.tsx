@@ -121,25 +121,6 @@ export const InputForm = ({
 
     return (
         <div className="min-h-screen bg-background pb-32">
-            {/* ヘッダー */}
-            <div className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
-                <div className="mx-auto max-w-lg px-4 py-3">
-                    <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 shadow-lg shadow-cyan-500/20">
-                            <span className="text-lg">💧</span>
-                        </div>
-                        <div>
-                            <h1 className="text-lg font-bold tracking-tight text-foreground">
-                                Washare Calc
-                            </h1>
-                            <p className="text-[11px] text-muted-foreground">
-                                見積もり作成ツール
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             <div className="mx-auto max-w-lg space-y-4 px-4 pt-4">
                 {/* 車両サイズ */}
                 <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
