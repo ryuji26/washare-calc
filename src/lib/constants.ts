@@ -41,6 +41,7 @@ export const WASH_PROCESSES: WashProcess[] = [
     { id: "hood-inner", name: "ボンネット内側洗浄", unitCost: 300, category: "detail" },
     { id: "trunk-inner", name: "トランク内側洗浄", unitCost: 300, category: "detail" },
     // コーティング系
+    { id: "wax-finish", name: "WAX仕上げ", unitCost: 1000, category: "coating" },
     { id: "simple-coating", name: "簡易コーティング", unitCost: 1500, category: "coating" },
     { id: "hard-coating", name: "硬化型コーティング", unitCost: 3000, category: "coating" },
     { id: "glass-coating-all", name: "窓ガラスコーティング(全面)", unitCost: 2000, category: "coating" },
