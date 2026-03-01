@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next"
 import { Noto_Sans_JP } from "next/font/google"
+import { Analytics } from "@vercel/analytics/react"
 import "./globals.css"
 
 const notoSansJP = Noto_Sans_JP({
@@ -30,6 +31,7 @@ const RootLayout = ({
     <html lang="ja" className="dark">
       <body className={`${notoSansJP.variable} font-sans antialiased`}>
         {children}
+        <Analytics />
       </body>
     </html>
   )
