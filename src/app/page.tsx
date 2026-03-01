@@ -51,6 +51,11 @@ const Page = () => {
 
   // 初回マウント時: セッション監視と初期データロード
   useEffect(() => {
+    // URLにSupabaseのOAuthコールバックハッシュが含まれている場合はクリーンナップする
+    if (window.location.hash && window.location.hash.includes('access_token=')) {
+      window.history.replaceState(null, document.title, window.location.pathname + window.location.search)
+    }
+
     // みんなの見積もりは初期ロード
     fetchPublicEstimates().then(setPublicEstimates)
 
