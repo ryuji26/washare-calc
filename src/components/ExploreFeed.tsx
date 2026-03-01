@@ -57,9 +57,6 @@ export const ExploreFeed = ({ estimates, onViewDetail }: ExploreFeedProps) => {
                                         <div className="text-sm font-bold text-foreground">
                                             {est.authorName}
                                         </div>
-                                        <div className="text-[10px] text-muted-foreground">
-                                            {est.authorArea}
-                                        </div>
                                     </div>
                                 </div>
                                 <div className="text-[10px] text-muted-foreground">

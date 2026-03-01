@@ -130,7 +130,7 @@ export const InputForm = ({
     const totalMinutes = formData.workHours * 60 + formData.workMinutes
 
     return (
-        <div className="min-h-screen bg-background pb-32">
+        <div className="min-h-screen bg-background pb-48">
             <div className="mx-auto max-w-lg space-y-4 px-4 pt-4">
                 {/* 車両サイズ */}
                 <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
