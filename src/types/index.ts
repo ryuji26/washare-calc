@@ -21,6 +21,7 @@ export type EstimateFormData = {
     selectedProcessIds: string[]
     customCosts: Record<string, number> // 工程IDごとのカスタム原価
     polishingPasses: number // 研磨周回数（0〜3）
+    isPublic: boolean // 公開タイムラインにシェアするか
 }
 
 // 計算結果
@@ -32,7 +33,10 @@ export type CalculationResult = {
 }
 
 // 画面表示モード
-export type ViewMode = "input" | "preview" | "mypage"
+export type ViewMode = "input" | "preview" | "mypage" | "explore"
+
+// タブバーのタブID
+export type TabId = "input" | "explore" | "mypage"
 
 // 認証モーダルの状態
 export type AuthModalMode = "login" | "register" | null
@@ -53,5 +57,17 @@ export type SavedEstimate = {
     totalPrice: number
     processNames: string[]
     vehicleSizeLabel: string
+    createdAt: string
+}
+
+// 公開見積もり（フィード用）
+export type PublicEstimate = {
+    id: string
+    authorName: string
+    authorArea: string
+    vehicleSize: VehicleSize
+    totalPrice: number
+    processNames: string[]
+    polishingPasses: number
     createdAt: string
 }

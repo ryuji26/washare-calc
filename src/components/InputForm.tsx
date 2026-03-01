@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
+import { Switch } from "@/components/ui/switch"
 import {
     VEHICLE_SIZES,
     WASH_PROCESSES,
@@ -452,6 +453,26 @@ export const InputForm = ({
                         )}
                     </div>
                 </div>
+
+                {/* 公開設定 */}
+                <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+                    <CardContent className="flex items-center justify-between p-4 px-5">
+                        <div className="space-y-0.5">
+                            <Label className="text-sm font-semibold text-foreground">
+                                タイムラインに公開
+                            </Label>
+                            <div className="text-[10px] text-muted-foreground">
+                                この見積もりを「みんなの見積」にシェアします
+                            </div>
+                        </div>
+                        <Switch
+                            checked={formData.isPublic}
+                            onCheckedChange={(checked) =>
+                                onFormDataChange({ ...formData, isPublic: checked })
+                            }
+                        />
+                    </CardContent>
+                </Card>
             </div>
 
             {/* フッター（計算結果 + ボタン） */}

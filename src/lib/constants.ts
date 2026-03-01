@@ -81,4 +81,5 @@ export const DEFAULT_FORM_DATA = {
     selectedProcessIds: [] as string[],
     customCosts: {} as Record<string, number>,
     polishingPasses: 0,
+    isPublic: false,
 }
