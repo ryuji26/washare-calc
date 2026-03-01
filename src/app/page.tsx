@@ -55,6 +55,24 @@ const Page = () => {
     // みんなの見積もりは初期ロード
     fetchPublicEstimates().then(setPublicEstimates)
 
+    // OAuthエラーの検出（URLパラメータから取得し、検知後に消去する）
+    if (typeof window !== "undefined") {
+      const searchParams = new URLSearchParams(window.location.search)
+      const err = searchParams.get('error')
+      const errCode = searchParams.get('error_code')
+      const errDesc = searchParams.get('error_description')
+
+      if (err || errCode || errDesc) {
+        // エラー詳細を生成
+        const errorMsg = `ログインエラーが発生しました。\nReason: ${err || errCode || '不明'}\nDescription: ${errDesc || 'なし'}`
+        alert(errorMsg)
+
+        // パラメータをクリーンアップ（履歴には残さない）
+        const newUrl = window.location.pathname
+        window.history.replaceState({}, document.title, newUrl)
+      }
+    }
+
     // Supabase Auth の状態監視
     const supabase = createClient()
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -139,15 +157,18 @@ const Page = () => {
 
   // ログアウト
   const handleLogout = useCallback(async () => {
-    const supabase = createClient()
-    await supabase.auth.signOut()
-    setUser(null)
-    setEstimates([])
-    handleTabChange("input")
-
-    // Safari等でSSRセッションCookieが正しくクリアされたことをブラウザに反映させるため
-    // 強制的にフルリロードを行います
-    window.location.reload()
+    try {
+      await fetch('/auth/signout', { method: 'POST' })
+    } catch (e) {
+      console.error('Logout error', e)
+    } finally {
+      setUser(null)
+      setEstimates([])
+      handleTabChange("input")
+      // Safari等でSSRセッションCookieが正しくクリアされたことをブラウザに反映させるため
+      // 強制的にフルリロードを行います
+      window.location.reload()
+    }
   }, [handleTabChange])
 
   // 見積もり保存
