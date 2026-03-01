@@ -62,60 +62,53 @@ export const QuotePreview = ({
 
         setIsGenerating(true)
         try {
-            const html2canvas = (await import("html2canvas")).default
+            const { toBlob } = await import("html-to-image")
             // 少し待つことで画像のロード等を確実にする
             await new Promise(r => setTimeout(r, 100))
 
-            const canvas = await html2canvas(quoteRef.current, {
+            const blob = await toBlob(quoteRef.current, {
                 backgroundColor: "#ffffff",
-                scale: 2, // 高画質化
-                useCORS: true, // 外部画像の読み込みを許可
-                allowTaint: true,
-                logging: false,
-                windowWidth: quoteRef.current.scrollWidth,
-                windowHeight: quoteRef.current.scrollHeight
+                pixelRatio: 2, // 高画質化
             })
 
-            canvas.toBlob(async (blob) => {
-                if (!blob) {
-                    throw new Error("Blob生成エラー")
-                }
+            if (!blob) {
+                throw new Error("Blob生成エラー")
+            }
 
-                if (navigator.share) {
-                    const file = new File([blob], "washare-estimate.png", {
-                        type: "image/png",
-                    })
-                    const shareData = {
-                        title: "Washare Calc 見積書",
-                        text: "洗車・ディテーリング見積書\n",
-                        files: [file],
-                    }
-                    if (!navigator.canShare || navigator.canShare(shareData)) {
-                        try {
-                            await navigator.share(shareData)
-                            setIsGenerating(false)
-                            return
-                        } catch (e: any) {
-                            // AbortErrorはユーザーがシェア画面を閉じただけなので無視
-                            if (e.name !== "AbortError") {
-                                console.error("Share Failed:", e)
-                            }
+            if (navigator.share) {
+                const file = new File([blob], "washare-estimate.png", {
+                    type: "image/png",
+                })
+                const shareData = {
+                    title: "Washare Calc 見積書",
+                    text: "洗車・ディテーリング見積書\n",
+                    files: [file],
+                }
+                if (!navigator.canShare || navigator.canShare(shareData)) {
+                    try {
+                        await navigator.share(shareData)
+                        setIsGenerating(false)
+                        return
+                    } catch (e: any) {
+                        // AbortErrorはユーザーがシェア画面を閉じただけなので無視
+                        if (e.name !== "AbortError") {
+                            console.error("Share Failed:", e)
                         }
                     }
                 }
+            }
 
-                // シェア機能が使えない、またはキャンセル時はダウンロードへフォールバック
-                const url = URL.createObjectURL(blob)
-                const a = document.createElement("a")
-                a.href = url
-                a.download = "washare-estimate.png"
-                a.style.display = "none"
-                document.body.appendChild(a)
-                a.click()
-                document.body.removeChild(a)
-                URL.revokeObjectURL(url)
+            // シェア機能が使えない、またはキャンセル時はダウンロードへフォールバック
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement("a")
+            a.href = url
+            a.download = "washare-estimate.png"
+            a.style.display = "none"
+            document.body.appendChild(a)
+            a.click()
+            document.body.removeChild(a)
+            URL.revokeObjectURL(url)
 
-            }, "image/png", 1.0)
         } catch (error: any) {
             console.error("画像生成エラー:", error)
             alert("画像の生成・共有に失敗しました。時間をおいて再度お試しください。(" + error.message + ")")
