@@ -181,3 +181,17 @@ export const saveEstimateToDb = async (
         createdAt: data.created_at,
     }
 }
+
+export const deleteEstimate = async (estimateId: string, userId: string): Promise<boolean> => {
+    const { error } = await supabase
+        .from("estimates")
+        .delete()
+        .eq("id", estimateId)
+        .eq("user_id", userId)
+
+    if (error) {
+        console.error("deleteEstimate Error:", error)
+        return false
+    }
+    return true
+}

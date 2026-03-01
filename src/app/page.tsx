@@ -17,6 +17,7 @@ import {
   fetchPublicEstimates,
   saveEstimateToDb,
   fetchEstimateFormData,
+  deleteEstimate,
 } from "@/lib/storage"
 import {
   type EstimateFormData,
@@ -186,6 +187,20 @@ const Page = () => {
     window.scrollTo({ top: 0, behavior: "smooth" })
   }, [])
 
+  // 見積もりの削除
+  const handleDeleteEstimate = useCallback(async (estimateId: string) => {
+    if (!user) return
+    const confirmed = window.confirm("この見積もりを削除してもよろしいですか？")
+    if (!confirmed) return
+
+    const success = await deleteEstimate(estimateId, user.id)
+    if (success) {
+      setEstimates((prev) => prev.filter((est) => est.id !== estimateId))
+    } else {
+      alert("見積もりの削除に失敗しました。")
+    }
+  }, [user])
+
   // みんなの見積フィードからプレビューを表示
   const handleViewPublicEstimate = useCallback(async (estimateId: string) => {
     const fd = await fetchEstimateFormData(estimateId)
@@ -239,6 +254,7 @@ const Page = () => {
           user={user}
           estimates={estimates}
           onViewEstimate={handleViewEstimate}
+          onDeleteEstimate={handleDeleteEstimate}
           onNavigateHome={handleNavigateHome}
         />
       )}
