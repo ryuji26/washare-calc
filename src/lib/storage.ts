@@ -50,7 +50,8 @@ export const saveEstimate = (formData: EstimateFormData): SavedEstimate => {
         formData.hourlyRate,
         formData.workHours,
         formData.workMinutes,
-        formData.customCosts
+        formData.customCosts,
+        formData.vehicleSize
     )
 
     const processNames = formData.selectedProcessIds

@@ -30,7 +30,8 @@ export const QuotePreview = ({
         formData.hourlyRate,
         formData.workHours,
         formData.workMinutes,
-        formData.customCosts
+        formData.customCosts,
+        formData.vehicleSize
     )
 
     // 選択された工程

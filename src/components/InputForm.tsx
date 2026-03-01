@@ -20,6 +20,7 @@ import {
     WASH_PROCESSES,
     CATEGORY_LABELS,
     CATEGORY_ICONS,
+    SIZE_MULTIPLIERS,
 } from "@/lib/constants"
 import { calculateEstimate, formatPrice } from "@/lib/calculator"
 import { type EstimateFormData, type ProcessCategory } from "@/types"
@@ -72,6 +73,9 @@ export const InputForm = ({
         })
     }
 
+    // 現在のサイズ倍率
+    const currentMultiplier = SIZE_MULTIPLIERS[formData.vehicleSize]?.multiplier ?? 1.0
+
     // リアルタイム計算結果
     const calculation = useMemo(
         () =>
@@ -80,7 +84,8 @@ export const InputForm = ({
                 formData.hourlyRate,
                 formData.workHours,
                 formData.workMinutes,
-                formData.customCosts
+                formData.customCosts,
+                formData.vehicleSize
             ),
         [formData]
     )
@@ -125,9 +130,17 @@ export const InputForm = ({
                 {/* 車両サイズ */}
                 <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
                     <CardContent className="p-4">
-                        <Label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                            車両サイズ
-                        </Label>
+                        <div className="mb-2 flex items-center justify-between">
+                            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                車両サイズ
+                            </Label>
+                            <Badge
+                                variant="secondary"
+                                className={`text-[10px] ${currentMultiplier !== 1.0 ? "bg-cyan-500/10 text-cyan-400 border-cyan-500/20" : "text-muted-foreground"}`}
+                            >
+                                原価倍率 ×{currentMultiplier}
+                            </Badge>
+                        </div>
                         <Select
                             value={formData.vehicleSize}
                             onValueChange={(value) =>
@@ -147,10 +160,17 @@ export const InputForm = ({
                                         <span className="ml-2 text-muted-foreground">
                                             {size.description}
                                         </span>
+                                        <span className="ml-2 text-[11px] text-cyan-400">
+                                            ×{SIZE_MULTIPLIERS[size.value].multiplier}
+                                        </span>
                                     </SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
+                        {/* 体積目安 */}
+                        <div className="mt-2 text-[10px] text-muted-foreground/60">
+                            体積目安: {SIZE_MULTIPLIERS[formData.vehicleSize].volume}
+                        </div>
                     </CardContent>
                 </Card>
 

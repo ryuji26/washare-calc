@@ -1,5 +1,5 @@
 // 車両サイズ
-export type VehicleSize = "SS" | "S" | "M" | "L" | "XL"
+export type VehicleSize = "SS" | "S" | "M" | "L" | "LL" | "XL"
 
 // 洗車工程の定義
 export type WashProcess = {

@@ -6,8 +6,19 @@ export const VEHICLE_SIZES: { value: VehicleSize; label: string; description: st
     { value: "S", label: "S", description: "コンパクトカー" },
     { value: "M", label: "M", description: "セダン・ワゴン" },
     { value: "L", label: "L", description: "SUV・ミニバン" },
+    { value: "LL", label: "LL", description: "大型ミニバン" },
     { value: "XL", label: "XL", description: "大型SUV・フルサイズ" },
 ]
+
+// 車両サイズ倍率（M=1.0を基準）
+export const SIZE_MULTIPLIERS: Record<VehicleSize, { volume: string; multiplier: number }> = {
+    SS: { volume: "8.4㎥ 以下", multiplier: 0.8 },
+    S: { volume: "8.5 ～ 10.4㎥", multiplier: 0.9 },
+    M: { volume: "10.5 ～ 12.1㎥", multiplier: 1.0 },
+    L: { volume: "12.2 ～ 13.9㎥", multiplier: 1.15 },
+    LL: { volume: "14.0 ～ 17.9㎥", multiplier: 1.3 },
+    XL: { volume: "18.0㎥ 以上", multiplier: 1.5 },
+}
 
 // 洗車工程データ（各工程にケミカル想定原価を設定）
 export const WASH_PROCESSES: WashProcess[] = [
