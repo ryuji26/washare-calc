@@ -9,8 +9,15 @@ import { MyPage } from "@/components/MyPage"
 import { BottomTabBar } from "@/components/BottomTabBar"
 import { ExploreFeed } from "@/components/ExploreFeed"
 import { DEFAULT_FORM_DATA } from "@/lib/constants"
-import { loadUser, removeUser, loadEstimates, saveEstimate } from "@/lib/storage"
-import { DUMMY_PUBLIC_ESTIMATES, DUMMY_PUBLIC_ESTIMATE_FORMS } from "@/lib/dummyData"
+import { supabase } from "@/lib/supabase"
+import {
+  fetchUserProfile,
+  updateUserProfile,
+  fetchUserEstimates,
+  fetchPublicEstimates,
+  saveEstimateToDb,
+  fetchEstimateFormData,
+} from "@/lib/storage"
 import {
   type EstimateFormData,
   type ViewMode,
@@ -18,36 +25,76 @@ import {
   type User,
   type SavedEstimate,
   type TabId,
+  type PublicEstimate,
 } from "@/types"
 
 const Page = () => {
-  // 画面モード管理
+  // 画面モード・タブ管理
   const [viewMode, setViewMode] = useState<ViewMode>("input")
-
-  // 現在のアクティブタブ
   const [activeTab, setActiveTab] = useState<TabId>("input")
 
-  // 認証モーダル
+  // 認証・ユーザー状態
   const [authModalMode, setAuthModalMode] = useState<AuthModalMode>(null)
-
-  // ユーザー状態
   const [user, setUser] = useState<User | null>(null)
 
-  // 見積もり履歴
+  // データ状態
   const [estimates, setEstimates] = useState<SavedEstimate[]>([])
+  const [publicEstimates, setPublicEstimates] = useState<PublicEstimate[]>([])
 
-  // フォームデータの状態管理
+  // フォームデータ
   const [formData, setFormData] = useState<EstimateFormData>({
     ...DEFAULT_FORM_DATA,
   })
 
-  // 保存済みトースト表示
+  // トースト表示
   const [showSavedToast, setShowSavedToast] = useState(false)
 
-  // 初回マウント時にlocalStorageからユーザー情報と履歴を読込
+  // 初回マウント時: セッション監視と初期データロード
   useEffect(() => {
-    setUser(loadUser())
-    setEstimates(loadEstimates())
+    // みんなの見積もりは初期ロード
+    fetchPublicEstimates().then(setPublicEstimates)
+
+    // Supabase Auth の状態監視
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (session?.user) {
+          let profile = await fetchUserProfile(session.user.id)
+
+          // プロファイルが無い(OAuthでの初回ログイン等)場合は自動生成する
+          if (!profile) {
+            const defaultName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || "ゲスト (Google連携)"
+            const defaultArea = "未設定"
+
+            try {
+              await updateUserProfile(session.user.id, defaultName, defaultArea)
+              profile = {
+                id: session.user.id,
+                email: session.user.email ?? "",
+                displayName: defaultName,
+                area: defaultArea,
+                createdAt: new Date().toISOString()
+              }
+            } catch (e) {
+              console.error("Auto profile creation failed:", e)
+            }
+          }
+
+          if (profile) {
+            setUser({ ...profile, email: session.user.email ?? "" })
+            const userEsts = await fetchUserEstimates(session.user.id)
+            setEstimates(userEsts)
+          } else {
+            setUser(null)
+            setEstimates([])
+          }
+        } else {
+          setUser(null)
+          setEstimates([])
+        }
+      }
+    )
+
+    return () => subscription.unsubscribe()
   }, [])
 
   // タブの切り替えハンドラ
@@ -56,9 +103,14 @@ const Page = () => {
       setAuthModalMode("login")
       return
     }
-    if (tabId === "mypage") {
-      setEstimates(loadEstimates())
+    // タブ切替時に最新データをフェッチ
+    if (tabId === "explore") {
+      fetchPublicEstimates().then(setPublicEstimates)
     }
+    if (tabId === "mypage" && user) {
+      fetchUserEstimates(user.id).then(setEstimates)
+    }
+
     setActiveTab(tabId)
     setViewMode(tabId)
     window.scrollTo({ top: 0, behavior: "smooth" })
@@ -81,28 +133,48 @@ const Page = () => {
     window.scrollTo({ top: 0, behavior: "smooth" })
   }, [activeTab])
 
-  // ログイン成功
-  const handleLogin = useCallback((loggedInUser: User) => {
-    setUser(loggedInUser)
-    setAuthModalMode(null)
-  }, [])
+
 
   // ログアウト
-  const handleLogout = useCallback(() => {
-    removeUser()
+  const handleLogout = useCallback(async () => {
+    await supabase.auth.signOut()
     setUser(null)
+    setEstimates([])
     handleTabChange("input")
   }, [handleTabChange])
 
   // 見積もり保存
-  const handleSaveEstimate = useCallback(() => {
-    saveEstimate(formData)
-    setEstimates(loadEstimates())
-    setShowSavedToast(true)
-    setTimeout(() => setShowSavedToast(false), 2500)
-  }, [formData])
+  const handleSaveEstimate = useCallback(async (overrideUser?: any) => {
+    // onClick等からEventオブジェクトが渡された場合は無視する
+    const isUserObject = overrideUser && typeof overrideUser === "object" && !("nativeEvent" in overrideUser) && !("preventDefault" in overrideUser);
+    const targetUser = isUserObject ? (overrideUser as User) : user;
 
-  // 履歴から見積もりを再表示
+    if (!targetUser) {
+      setAuthModalMode("register")
+      return
+    }
+    const saved = await saveEstimateToDb(targetUser.id, formData)
+    if (saved) {
+      const userEsts = await fetchUserEstimates(targetUser.id)
+      setEstimates(userEsts)
+      setShowSavedToast(true)
+      setTimeout(() => setShowSavedToast(false), 2500)
+    } else {
+      alert("見積もりの保存に失敗しました。")
+    }
+  }, [formData, user])
+
+  // ログイン成功 (AuthModalからコールバック)
+  const handleLogin = useCallback((loggedInUser: User) => {
+    setUser(loggedInUser)
+    setAuthModalMode(null)
+
+    if (viewMode === "preview") {
+      handleSaveEstimate(loggedInUser)
+    }
+  }, [viewMode, handleSaveEstimate])
+
+  // 履歴から見積もりを再表示 (MyPage用)
   const handleViewEstimate = useCallback((savedFormData: EstimateFormData) => {
     setFormData(savedFormData)
     setViewMode("preview")
@@ -110,12 +182,14 @@ const Page = () => {
   }, [])
 
   // みんなの見積フィードからプレビューを表示
-  const handleViewPublicEstimate = useCallback((estimateId: string) => {
-    const dummyData = DUMMY_PUBLIC_ESTIMATE_FORMS[estimateId]
-    if (dummyData) {
-      setFormData(dummyData as EstimateFormData)
+  const handleViewPublicEstimate = useCallback(async (estimateId: string) => {
+    const fd = await fetchEstimateFormData(estimateId)
+    if (fd) {
+      setFormData(fd)
       setViewMode("preview")
       window.scrollTo({ top: 0, behavior: "smooth" })
+    } else {
+      alert("見積もりデータの取得に失敗しました。")
     }
   }, [])
 
@@ -150,7 +224,7 @@ const Page = () => {
 
       {viewMode === "explore" && (
         <ExploreFeed
-          estimates={DUMMY_PUBLIC_ESTIMATES}
+          estimates={publicEstimates}
           onViewDetail={handleViewPublicEstimate}
         />
       )}

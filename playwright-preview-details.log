@@ -1,0 +1,42 @@
+
+Running 1 test using 1 worker
+
+On Preview Page - 御見積書 found!
+  ✘  1 playwright-test-all-actions.spec.ts:3:5 › Test All Preview Actions Detailed (30.2s)
+
+
+  1) playwright-test-all-actions.spec.ts:3:5 › Test All Preview Actions Detailed ───────────────────
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: page.waitForTimeout: Target page, context or browser has been closed
+
+      54 |     }
+      55 |
+    > 56 |     await page.waitForTimeout(2000);
+         |                ^
+      57 |
+      58 |     console.log("--- TEST LOGS ---");
+      59 |     logs.forEach(l => console.log(l));
+        at /Users/ryuji/.gemini/antigravity/scratch/washare-calc/playwright-test-all-actions.spec.ts:56:16
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/playwright-test-all-action-a656d-ll-Preview-Actions-Detailed/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/playwright-test-all-action-a656d-ll-Preview-Actions-Detailed/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/playwright-test-all-action-a656d-ll-Preview-Actions-Detailed/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/playwright-test-all-action-a656d-ll-Preview-Actions-Detailed/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/playwright-test-all-action-a656d-ll-Preview-Actions-Detailed/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    playwright-test-all-actions.spec.ts:3:5 › Test All Preview Actions Detailed ────────────────────

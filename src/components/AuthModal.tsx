@@ -19,7 +19,8 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { type User, type AuthModalMode } from "@/types"
-import { saveUser, generateUserId } from "@/lib/storage"
+import { supabase } from "@/lib/supabase"
+import { fetchUserProfile, updateUserProfile } from "@/lib/storage"
 
 // 都道府県リスト
 const PREFECTURES = [
@@ -51,32 +52,87 @@ export const AuthModal = ({ mode, onClose, onLogin }: AuthModalProps) => {
     const [regName, setRegName] = useState("")
     const [regArea, setRegArea] = useState("")
 
-    // ログイン処理（モック）
-    const handleLogin = () => {
+    // ローディング状態
+    const [isLoading, setIsLoading] = useState(false)
+
+    // ログイン処理
+    const handleLogin = async () => {
         if (!loginEmail || !loginPassword) return
-        const user: User = {
-            id: generateUserId(),
-            email: loginEmail,
-            displayName: loginEmail.split("@")[0],
-            area: "",
-            createdAt: new Date().toISOString(),
+        setIsLoading(true)
+        try {
+            const { data: authData, error } = await supabase.auth.signInWithPassword({
+                email: loginEmail,
+                password: loginPassword,
+            })
+            if (error) throw error
+
+            if (authData.user) {
+                const profile = await fetchUserProfile(authData.user.id)
+                if (profile) {
+                    onLogin({
+                        ...profile,
+                        email: loginEmail,
+                    })
+                } else {
+                    alert("プロファイルが見つかりません。")
+                }
+            }
+        } catch (e: any) {
+            alert(e.message || "ログインに失敗しました")
+        } finally {
+            setIsLoading(false)
         }
-        saveUser(user)
-        onLogin(user)
     }
 
-    // 新規登録処理（モック）
-    const handleRegister = () => {
-        if (!regEmail || !regPassword || !regName) return
-        const user: User = {
-            id: generateUserId(),
-            email: regEmail,
-            displayName: regName,
-            area: regArea,
-            createdAt: new Date().toISOString(),
+    // 新規登録処理
+    const handleRegister = async () => {
+        if (!regEmail || !regPassword || !regName || !regArea) return
+        setIsLoading(true)
+        try {
+            const { data: authData, error } = await supabase.auth.signUp({
+                email: regEmail,
+                password: regPassword,
+            })
+            if (error) throw error
+
+            if (authData.user) {
+                // profile 作成
+                await updateUserProfile(authData.user.id, regName, regArea)
+
+                // onLogin内でモーダルが閉じるはずなので、Loadingは解除
+                setIsLoading(false)
+
+                onLogin({
+                    id: authData.user.id,
+                    email: regEmail,
+                    displayName: regName,
+                    area: regArea,
+                    createdAt: new Date().toISOString(),
+                })
+            }
+        } catch (e: any) {
+            console.error("SignUp/Profile Creation Error:", e)
+            alert(e.message || "登録に失敗しました")
+            setIsLoading(false)
         }
-        saveUser(user)
-        onLogin(user)
+    }
+
+    // Googleログイン処理
+    const handleGoogleLogin = async () => {
+        setIsLoading(true)
+        try {
+            const { error } = await supabase.auth.signInWithOAuth({
+                provider: 'google',
+                options: {
+                    redirectTo: window.location.origin,
+                }
+            })
+            if (error) throw error
+        } catch (e: any) {
+            console.error("Google Login Error:", e)
+            alert(e.message || "Googleログインに失敗しました")
+            setIsLoading(false)
+        }
     }
 
     return (
@@ -129,9 +185,10 @@ export const AuthModal = ({ mode, onClose, onLogin }: AuthModalProps) => {
                         </div>
                         <Button
                             onClick={handleLogin}
-                            className="h-11 w-full bg-gradient-to-r from-cyan-500 to-blue-600 font-semibold text-white shadow-lg shadow-cyan-500/20"
+                            disabled={isLoading}
+                            className="h-11 w-full bg-gradient-to-r from-cyan-500 to-blue-600 font-semibold text-white shadow-lg shadow-cyan-500/20 disabled:opacity-50"
                         >
-                            ログイン
+                            {isLoading ? "処理中..." : "ログイン"}
                         </Button>
 
                         <div className="relative my-3">
@@ -148,7 +205,8 @@ export const AuthModal = ({ mode, onClose, onLogin }: AuthModalProps) => {
                         <Button
                             variant="outline"
                             className="h-11 w-full border-border/50 text-sm"
-                            onClick={handleLogin}
+                            disabled={isLoading}
+                            onClick={handleGoogleLogin}
                         >
                             <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
                                 <path
@@ -225,9 +283,10 @@ export const AuthModal = ({ mode, onClose, onLogin }: AuthModalProps) => {
                         </div>
                         <Button
                             onClick={handleRegister}
-                            className="h-11 w-full bg-gradient-to-r from-cyan-500 to-blue-600 font-semibold text-white shadow-lg shadow-cyan-500/20"
+                            disabled={isLoading}
+                            className="h-11 w-full bg-gradient-to-r from-cyan-500 to-blue-600 font-semibold text-white shadow-lg shadow-cyan-500/20 disabled:opacity-50"
                         >
-                            無料で登録する
+                            {isLoading ? "処理中..." : "無料で登録する"}
                         </Button>
 
                         <div className="relative my-2">
@@ -244,7 +303,8 @@ export const AuthModal = ({ mode, onClose, onLogin }: AuthModalProps) => {
                         <Button
                             variant="outline"
                             className="h-11 w-full border-border/50 text-sm"
-                            onClick={handleRegister}
+                            disabled={isLoading}
+                            onClick={handleGoogleLogin}
                         >
                             <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
                                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" />
@@ -252,13 +312,8 @@ export const AuthModal = ({ mode, onClose, onLogin }: AuthModalProps) => {
                                 <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
                                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                             </svg>
-                            Googleで登録
+                            Googleで連携して登録
                         </Button>
-
-                        <p className="mt-2 text-center text-[10px] text-muted-foreground">
-                            ※ ゲストでも見積もり作成は可能ですが、<br />
-                            履歴保存にはアカウント登録が必要です。
-                        </p>
                     </TabsContent>
                 </Tabs>
             </DialogContent>

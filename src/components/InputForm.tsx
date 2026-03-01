@@ -476,7 +476,7 @@ export const InputForm = ({
             </div>
 
             {/* フッター（計算結果 + ボタン） */}
-            <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/50 bg-background/90 backdrop-blur-xl">
+            <div className="fixed bottom-16 left-0 right-0 z-40 border-t border-border/50 bg-background/90 pb-safe backdrop-blur-xl">
                 <div className="mx-auto max-w-lg px-4 py-3">
                     {/* 計算結果 */}
                     <div className="mb-3 grid grid-cols-4 gap-1.5">

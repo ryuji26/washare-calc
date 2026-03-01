@@ -1,0 +1,76 @@
+# Page snapshot
+
+```yaml
+- generic:
+  - main:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - generic: 💧
+                - generic:
+                  - generic: Washare Calc
+                  - generic: DETAILING ESTIMATE
+              - generic: Estimate
+              - heading [level=2]: 御見積書
+              - generic: 2026年3月1日
+          - generic:
+            - generic: ご請求金額
+            - generic:
+              - generic: ¥4,200
+              - generic: (税込)
+          - generic:
+            - generic:
+              - generic: 車両サイズ
+              - generic: Mセダン・ワゴン
+            - generic:
+              - generic: 想定所要時間
+              - generic: 2時間
+          - generic:
+            - generic: 施工内容
+            - generic:
+              - generic:
+                - generic:
+                  - generic: "1"
+                  - generic:
+                    - generic: 🧽
+                    - generic: ボディ手洗い
+          - generic:
+            - generic:
+              - generic: "本見積書の有効期限: 発行日より14日間"
+              - generic: Washare Calc
+        - generic:
+          - button:
+            - img
+            - text: この見積もりを保存する（※要ログイン）
+          - button:
+            - img
+            - text: 画像を保存 / LINEで送る
+          - button: 見積もりを編集する
+  - button "Open Next.js Dev Tools" [ref=e6] [cursor=pointer]:
+    - img [ref=e7]
+  - alert
+  - dialog "Washare Calc" [ref=e11]:
+    - generic [ref=e12]:
+      - heading "Washare Calc" [level=2] [ref=e13]
+      - paragraph [ref=e14]: 見積もり履歴を保存・管理できます
+    - generic [ref=e15]:
+      - tablist [ref=e16]:
+        - tab "ログイン" [active] [selected] [ref=e17]
+        - tab "新規登録" [ref=e18]
+      - tabpanel "ログイン" [ref=e19]:
+        - generic [ref=e20]:
+          - generic [ref=e21]: メールアドレス
+          - textbox "mail@example.com" [ref=e22]
+        - generic [ref=e23]:
+          - generic [ref=e24]: パスワード
+          - textbox "••••••••" [ref=e25]
+        - button "ログイン" [ref=e26]
+        - generic [ref=e31]: または
+    - button "Close" [ref=e32]:
+      - img
+      - generic [ref=e33]: Close
+```

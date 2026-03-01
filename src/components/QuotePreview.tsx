@@ -71,7 +71,7 @@ export const QuotePreview = ({
             canvas.toBlob(async (blob) => {
                 if (!blob) return
 
-                if (navigator.share && navigator.canShare) {
+                if (navigator.share) {
                     const file = new File([blob], "washare-estimate.png", {
                         type: "image/png",
                     })
@@ -80,12 +80,12 @@ export const QuotePreview = ({
                         text: "洗車・ディテーリング見積書",
                         files: [file],
                     }
-                    if (navigator.canShare(shareData)) {
+                    if (!navigator.canShare || navigator.canShare(shareData)) {
                         try {
                             await navigator.share(shareData)
                             return
                         } catch {
-                            // シェアがキャンセルされた場合はフォールバック
+                            // シェアがキャンセルされたり失敗した場合はフォールバックへ
                         }
                     }
                 }
