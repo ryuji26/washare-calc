@@ -119,38 +119,11 @@ export const AuthModal = ({ mode, onClose, onLogin }: AuthModalProps) => {
         }
     }
 
-    // Googleログイン処理
-    const handleGoogleLogin = async () => {
+    // Googleログイン処理 (サーバーサイドリダイレクトへ移行)
+    const handleGoogleLogin = () => {
         setIsLoading(true)
-        const supabase = createClient()
-        try {
-            const { data, error } = await supabase.auth.signInWithOAuth({
-                provider: 'google',
-                options: {
-                    redirectTo: `${window.location.origin}/auth/callback`,
-                    // SupabaseSDK内の自動リダイレクトと手動リダイレクトがChromeで競合してキャンセルされるのを防ぐため明示的にtrue
-                    skipBrowserRedirect: true,
-                }
-            })
-
-            if (error) {
-                alert(`Supabase Auth Error: ${error.message}`);
-                throw error;
-            }
-
-            if (data?.url) {
-                // デバッグ用: URLが取得できているか確認（不要になったら消す）
-                // alert(`Redirecting to: ${data.url.substring(0, 50)}...`);
-                window.location.href = data.url
-            } else {
-                alert("エラー: リダイレクト先のURLが取得できませんでした。\n(data.url is empty)");
-                setIsLoading(false);
-            }
-        } catch (e: any) {
-            console.error("Google Login Error:", e)
-            alert("例外エラー: " + (e?.message || "Googleログインに失敗しました"))
-            setIsLoading(false)
-        }
+        // JavaScriptの非同期通信（fetch等）を利用せず、ブラウザ標準の画面遷移でサーバーを叩く
+        window.location.href = '/auth/login'
     }
 
     return (
