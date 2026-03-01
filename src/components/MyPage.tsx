@@ -38,7 +38,7 @@ export const MyPage = ({
     )
 
     return (
-        <div className="min-h-screen bg-background pb-8">
+        <div className="min-h-screen bg-background pb-24">
             <div className="mx-auto max-w-lg space-y-6 px-4 pt-6">
                 {/* プロフィールカード */}
                 <Card className="overflow-hidden border-border/50 bg-card/50 backdrop-blur-sm">
