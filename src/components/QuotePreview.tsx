@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useCallback } from "react"
+import { useRef, useCallback, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { WASH_PROCESSES, VEHICLE_SIZES, CATEGORY_ICONS } from "@/lib/constants"
@@ -23,6 +23,7 @@ export const QuotePreview = ({
     onOpenAuth,
 }: QuotePreviewProps) => {
     const quoteRef = useRef<HTMLDivElement>(null)
+    const [isGenerating, setIsGenerating] = useState(false)
 
     // 計算結果
     const calculation = calculateEstimate(
@@ -57,19 +58,28 @@ export const QuotePreview = ({
 
     // 画像を保存してLINEで送る
     const handleSaveImage = useCallback(async () => {
-        if (!quoteRef.current) return
+        if (!quoteRef.current || isGenerating) return
 
+        setIsGenerating(true)
         try {
             const html2canvas = (await import("html2canvas")).default
+            // 少し待つことで画像のロード等を確実にする
+            await new Promise(r => setTimeout(r, 100))
+
             const canvas = await html2canvas(quoteRef.current, {
                 backgroundColor: "#ffffff",
-                scale: 2,
-                useCORS: true,
+                scale: 2, // 高画質化
+                useCORS: true, // 外部画像の読み込みを許可
+                allowTaint: true,
                 logging: false,
+                windowWidth: quoteRef.current.scrollWidth,
+                windowHeight: quoteRef.current.scrollHeight
             })
 
             canvas.toBlob(async (blob) => {
-                if (!blob) return
+                if (!blob) {
+                    throw new Error("Blob生成エラー")
+                }
 
                 if (navigator.share) {
                     const file = new File([blob], "washare-estimate.png", {
@@ -77,30 +87,42 @@ export const QuotePreview = ({
                     })
                     const shareData = {
                         title: "Washare Calc 見積書",
-                        text: "洗車・ディテーリング見積書",
+                        text: "洗車・ディテーリング見積書\n",
                         files: [file],
                     }
                     if (!navigator.canShare || navigator.canShare(shareData)) {
                         try {
                             await navigator.share(shareData)
+                            setIsGenerating(false)
                             return
-                        } catch {
-                            // シェアがキャンセルされたり失敗した場合はフォールバックへ
+                        } catch (e: any) {
+                            // AbortErrorはユーザーがシェア画面を閉じただけなので無視
+                            if (e.name !== "AbortError") {
+                                console.error("Share Failed:", e)
+                            }
                         }
                     }
                 }
 
+                // シェア機能が使えない、またはキャンセル時はダウンロードへフォールバック
                 const url = URL.createObjectURL(blob)
                 const a = document.createElement("a")
                 a.href = url
                 a.download = "washare-estimate.png"
+                a.style.display = "none"
+                document.body.appendChild(a)
                 a.click()
+                document.body.removeChild(a)
                 URL.revokeObjectURL(url)
-            }, "image/png")
-        } catch (error) {
-            console.error("画像生成に失敗しました:", error)
+
+            }, "image/png", 1.0)
+        } catch (error: any) {
+            console.error("画像生成エラー:", error)
+            alert("画像の生成・共有に失敗しました。時間をおいて再度お試しください。(" + error.message + ")")
+        } finally {
+            setIsGenerating(false)
         }
-    }, [])
+    }, [isGenerating])
 
     return (
         <div className="min-h-screen bg-neutral-100">
@@ -253,12 +275,20 @@ export const QuotePreview = ({
                     {/* LINE送信ボタン */}
                     <Button
                         onClick={handleSaveImage}
+                        disabled={isGenerating}
                         className="h-14 w-full rounded-xl bg-gradient-to-r from-[#06C755] to-[#05b34e] text-base font-bold text-white shadow-lg shadow-[#06C755]/25 transition-all hover:shadow-[#06C755]/40"
                     >
-                        <svg className="mr-2 h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M12 2C6.48 2 2 5.82 2 10.5c0 2.93 1.95 5.5 4.85 6.97.22.1.37.32.37.56 0 .65-.42 2.37-.48 2.73-.08.45.17.88.62.88.16 0 .32-.05.45-.15.52-.38 2.68-1.7 3.8-2.43.45.06.91.09 1.39.09 5.52 0 10-3.82 10-8.5S17.52 2 12 2z" />
-                        </svg>
-                        画像を保存 / LINEで送る
+                        {isGenerating ? (
+                            <svg className="mr-2 h-5 w-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                            </svg>
+                        ) : (
+                            <svg className="mr-2 h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 2C6.48 2 2 5.82 2 10.5c0 2.93 1.95 5.5 4.85 6.97.22.1.37.32.37.56 0 .65-.42 2.37-.48 2.73-.08.45.17.88.62.88.16 0 .32-.05.45-.15.52-.38 2.68-1.7 3.8-2.43.45.06.91.09 1.39.09 5.52 0 10-3.82 10-8.5S17.52 2 12 2z" />
+                            </svg>
+                        )}
+                        {isGenerating ? "画像を作成しています..." : "画像を保存 / LINEで送る"}
                     </Button>
 
                     {/* 編集に戻るボタン */}
