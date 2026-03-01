@@ -22,7 +22,7 @@ import {
     CATEGORY_ICONS,
     SIZE_MULTIPLIERS,
 } from "@/lib/constants"
-import { calculateEstimate, formatPrice } from "@/lib/calculator"
+import { calculateEstimate, calcPolishingCost, formatPrice } from "@/lib/calculator"
 import { type EstimateFormData, type ProcessCategory } from "@/types"
 
 type InputFormProps = {
@@ -85,10 +85,14 @@ export const InputForm = ({
                 formData.workHours,
                 formData.workMinutes,
                 formData.customCosts,
-                formData.vehicleSize
+                formData.vehicleSize,
+                formData.polishingPasses
             ),
         [formData]
     )
+
+    // 現在の研磨単価（サイズ倍率適用済み）
+    const polishingUnitCost = calcPolishingCost(1, formData.vehicleSize)
 
     // 工程の選択/解除
     const toggleProcess = (processId: string) => {
@@ -240,6 +244,55 @@ export const InputForm = ({
                                     step={100}
                                 />
                             </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* 研磨メニュー */}
+                <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+                    <CardContent className="p-4">
+                        <div className="mb-3 flex items-center justify-between">
+                            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                ✨ 研磨メニュー
+                            </Label>
+                            {formData.polishingPasses > 0 && (
+                                <Badge
+                                    variant="secondary"
+                                    className="bg-cyan-500/10 text-[10px] text-cyan-400 border-cyan-500/20"
+                                >
+                                    {formatPrice(calcPolishingCost(formData.polishingPasses, formData.vehicleSize))}
+                                </Badge>
+                            )}
+                        </div>
+                        <div className="grid grid-cols-4 gap-2">
+                            {[0, 1, 2, 3].map((passes) => (
+                                <button
+                                    key={passes}
+                                    type="button"
+                                    onClick={() =>
+                                        onFormDataChange({ ...formData, polishingPasses: passes })
+                                    }
+                                    className={`rounded-lg border px-3 py-3 text-center transition-all ${formData.polishingPasses === passes
+                                        ? "border-cyan-500 bg-cyan-500/10 ring-1 ring-cyan-500/30"
+                                        : "border-border/50 bg-secondary/30 hover:bg-secondary/50"
+                                        }`}
+                                >
+                                    <div className={`text-lg font-bold ${formData.polishingPasses === passes
+                                        ? "text-cyan-400"
+                                        : "text-muted-foreground"
+                                        }`}>
+                                        {passes === 0 ? "—" : `${passes}周`}
+                                    </div>
+                                    <div className="mt-0.5 text-[10px] text-muted-foreground">
+                                        {passes === 0
+                                            ? "なし"
+                                            : formatPrice(polishingUnitCost * passes)}
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                        <div className="mt-2 text-[10px] text-muted-foreground/60">
+                            ※Mサイズ1周 ¥10,000基準 × サイズ倍率×{currentMultiplier}
                         </div>
                     </CardContent>
                 </Card>
@@ -405,24 +458,30 @@ export const InputForm = ({
             <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/50 bg-background/90 backdrop-blur-xl">
                 <div className="mx-auto max-w-lg px-4 py-3">
                     {/* 計算結果 */}
-                    <div className="mb-3 grid grid-cols-3 gap-2">
-                        <div className="rounded-lg bg-secondary/50 p-2 text-center">
-                            <div className="text-[10px] text-muted-foreground">
-                                ケミカル原価
+                    <div className="mb-3 grid grid-cols-4 gap-1.5">
+                        <div className="rounded-lg bg-secondary/50 p-1.5 text-center">
+                            <div className="text-[9px] text-muted-foreground">
+                                ケミカル
                             </div>
-                            <div className="text-sm font-bold tabular-nums text-foreground">
+                            <div className="text-xs font-bold tabular-nums text-foreground">
                                 {formatPrice(calculation.chemicalCost)}
                             </div>
                         </div>
-                        <div className="rounded-lg bg-secondary/50 p-2 text-center">
-                            <div className="text-[10px] text-muted-foreground">労働対価</div>
-                            <div className="text-sm font-bold tabular-nums text-foreground">
+                        <div className="rounded-lg bg-secondary/50 p-1.5 text-center">
+                            <div className="text-[9px] text-muted-foreground">研磨</div>
+                            <div className="text-xs font-bold tabular-nums text-foreground">
+                                {formatPrice(calculation.polishingCost)}
+                            </div>
+                        </div>
+                        <div className="rounded-lg bg-secondary/50 p-1.5 text-center">
+                            <div className="text-[9px] text-muted-foreground">労働対価</div>
+                            <div className="text-xs font-bold tabular-nums text-foreground">
                                 {formatPrice(calculation.laborCost)}
                             </div>
                         </div>
-                        <div className="rounded-lg bg-gradient-to-r from-cyan-500/20 to-blue-600/20 p-2 text-center ring-1 ring-cyan-500/30">
-                            <div className="text-[10px] text-cyan-400">最低提示価格</div>
-                            <div className="text-sm font-bold tabular-nums text-cyan-300">
+                        <div className="rounded-lg bg-gradient-to-r from-cyan-500/20 to-blue-600/20 p-1.5 text-center ring-1 ring-cyan-500/30">
+                            <div className="text-[9px] text-cyan-400">最低提示価格</div>
+                            <div className="text-xs font-bold tabular-nums text-cyan-300">
                                 {formatPrice(calculation.totalPrice)}
                             </div>
                         </div>
@@ -431,7 +490,7 @@ export const InputForm = ({
                     {/* ボタン */}
                     <Button
                         onClick={onCreateQuote}
-                        disabled={formData.selectedProcessIds.length === 0}
+                        disabled={formData.selectedProcessIds.length === 0 && formData.polishingPasses === 0}
                         className="h-12 w-full bg-gradient-to-r from-cyan-500 to-blue-600 text-base font-bold text-white shadow-lg shadow-cyan-500/25 transition-all hover:shadow-cyan-500/40 disabled:opacity-50"
                     >
                         この内容で見積書を作成する

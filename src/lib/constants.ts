@@ -70,6 +70,9 @@ export const CATEGORY_ICONS: Record<string, string> = {
 }
 
 // デフォルトフォーム値
+// 研磨ベース単価（Mサイズ1周あたり）
+export const POLISHING_BASE_COST = 10000
+
 export const DEFAULT_FORM_DATA = {
     vehicleSize: "M" as VehicleSize,
     workHours: 2,
@@ -77,4 +80,5 @@ export const DEFAULT_FORM_DATA = {
     hourlyRate: 2000,
     selectedProcessIds: [] as string[],
     customCosts: {} as Record<string, number>,
+    polishingPasses: 0,
 }

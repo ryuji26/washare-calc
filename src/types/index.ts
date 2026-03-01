@@ -20,11 +20,13 @@ export type EstimateFormData = {
     hourlyRate: number
     selectedProcessIds: string[]
     customCosts: Record<string, number> // 工程IDごとのカスタム原価
+    polishingPasses: number // 研磨周回数（0〜3）
 }
 
 // 計算結果
 export type CalculationResult = {
     chemicalCost: number    // ケミカル想定原価
+    polishingCost: number   // 研磨コスト
     laborCost: number       // 労働対価
     totalPrice: number      // 最低提示価格
 }

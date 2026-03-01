@@ -31,7 +31,8 @@ export const QuotePreview = ({
         formData.workHours,
         formData.workMinutes,
         formData.customCosts,
-        formData.vehicleSize
+        formData.vehicleSize,
+        formData.polishingPasses
     )
 
     // 選択された工程
@@ -197,6 +198,24 @@ export const QuotePreview = ({
                                     {index < selectedProcesses.length - 1 && (
                                         <Separator className="ml-3.5 w-px bg-neutral-200" />
                                     )}
+                                    {/* 最後の工程の後に研磨を表示 */}
+                                    {index === selectedProcesses.length - 1 &&
+                                        formData.polishingPasses > 0 && (
+                                            <>
+                                                <Separator className="ml-3.5 w-px bg-neutral-200" />
+                                                <div className="flex items-center gap-3 py-2.5">
+                                                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-neutral-100 to-neutral-50 text-xs font-bold text-neutral-500 ring-1 ring-neutral-200/50">
+                                                        {selectedProcesses.length + 1}
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-sm">✨</span>
+                                                        <span className="text-sm font-medium text-neutral-700">
+                                                            ボディ研磨（{formData.polishingPasses}周）
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </>
+                                        )}
                                 </div>
                             ))}
                         </div>

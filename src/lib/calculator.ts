@@ -1,4 +1,4 @@
-import { WASH_PROCESSES, SIZE_MULTIPLIERS } from "@/lib/constants"
+import { WASH_PROCESSES, SIZE_MULTIPLIERS, POLISHING_BASE_COST } from "@/lib/constants"
 import { type CalculationResult, type VehicleSize } from "@/types"
 
 /**
@@ -21,6 +21,18 @@ export const calcChemicalCost = (
 }
 
 /**
+ * 研磨コストを計算する（ベース単価 × 周回数 × サイズ倍率）
+ */
+export const calcPolishingCost = (
+    passes: number,
+    vehicleSize: VehicleSize = "M"
+): number => {
+    if (passes <= 0) return 0
+    const multiplier = SIZE_MULTIPLIERS[vehicleSize]?.multiplier ?? 1.0
+    return Math.round(POLISHING_BASE_COST * passes * multiplier)
+}
+
+/**
  * 労働対価を計算する（時給 × 時間）
  */
 export const calcLaborCost = (
@@ -37,9 +49,10 @@ export const calcLaborCost = (
  */
 export const calcTotalPrice = (
     chemicalCost: number,
+    polishingCost: number,
     laborCost: number
 ): number => {
-    return chemicalCost + laborCost
+    return chemicalCost + polishingCost + laborCost
 }
 
 /**
@@ -51,13 +64,15 @@ export const calculateEstimate = (
     hours: number,
     minutes: number,
     customCosts: Record<string, number> = {},
-    vehicleSize: VehicleSize = "M"
+    vehicleSize: VehicleSize = "M",
+    polishingPasses: number = 0
 ): CalculationResult => {
     const chemicalCost = calcChemicalCost(selectedProcessIds, vehicleSize, customCosts)
+    const polishingCost = calcPolishingCost(polishingPasses, vehicleSize)
     const laborCost = calcLaborCost(hourlyRate, hours, minutes)
-    const totalPrice = calcTotalPrice(chemicalCost, laborCost)
+    const totalPrice = calcTotalPrice(chemicalCost, polishingCost, laborCost)
 
-    return { chemicalCost, laborCost, totalPrice }
+    return { chemicalCost, polishingCost, laborCost, totalPrice }
 }
 
 /**
