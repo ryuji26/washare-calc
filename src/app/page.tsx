@@ -77,49 +77,72 @@ const Page = () => {
 
     // Supabase Auth の状態監視
     const supabase = createClient()
+
+    const handleSessionUser = async (sessionUser: any) => {
+      let profile = await fetchUserProfile(sessionUser.id)
+
+      // プロファイルが無い(OAuthでの初回ログイン等)場合は自動生成する
+      if (!profile) {
+        const defaultName = sessionUser.user_metadata?.full_name || sessionUser.user_metadata?.name || "ゲスト (Google連携)"
+        const defaultArea = "未設定"
+
+        try {
+          await updateUserProfile(sessionUser.id, defaultName, defaultArea)
+          profile = {
+            id: sessionUser.id,
+            email: sessionUser.email ?? "",
+            displayName: defaultName,
+            area: defaultArea,
+            createdAt: new Date().toISOString()
+          }
+        } catch (e) {
+          console.error("Auto profile creation failed:", e)
+        }
+      }
+
+      if (profile) {
+        const enrichedProfile = { ...profile, email: sessionUser.email ?? "" }
+        setUser(enrichedProfile)
+
+        // 初回ロード時にフォームにデフォルト原価を反映
+        setFormData(prev => ({
+          ...prev,
+          customCosts: enrichedProfile.defaultProcessCosts || {}
+        }))
+
+        const userEsts = await fetchUserEstimates(sessionUser.id)
+        setEstimates(userEsts)
+      } else {
+        setUser(null)
+        setEstimates([])
+      }
+    }
+
+    // 明示的に初期セッションを取得する
+    const fetchInitialUser = async () => {
+      const { data: { user: sessionUser } } = await supabase.auth.getUser()
+      if (sessionUser) {
+        await handleSessionUser(sessionUser)
+      }
+    }
+    fetchInitialUser()
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (session?.user) {
-          let profile = await fetchUserProfile(session.user.id)
-
-          // プロファイルが無い(OAuthでの初回ログイン等)場合は自動生成する
-          if (!profile) {
-            const defaultName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || "ゲスト (Google連携)"
-            const defaultArea = "未設定"
-
-            try {
-              await updateUserProfile(session.user.id, defaultName, defaultArea)
-              profile = {
-                id: session.user.id,
-                email: session.user.email ?? "",
-                displayName: defaultName,
-                area: defaultArea,
-                createdAt: new Date().toISOString()
-              }
-            } catch (e) {
-              console.error("Auto profile creation failed:", e)
-            }
-          }
-
-          if (profile) {
-            const enrichedProfile = { ...profile, email: session.user.email ?? "" }
-            setUser(enrichedProfile)
-
-            // 初回ロード時にフォームにデフォルト原価を反映
-            setFormData(prev => ({
-              ...prev,
-              customCosts: enrichedProfile.defaultProcessCosts || {}
-            }))
-
-            const userEsts = await fetchUserEstimates(session.user.id)
-            setEstimates(userEsts)
-          } else {
-            setUser(null)
-            setEstimates([])
-          }
-        } else {
+        if (event === "SIGNED_OUT") {
           setUser(null)
           setEstimates([])
+          return
+        }
+
+        // SIGNED_IN などのイベントでユーザー情報が更新された場合
+        if (session?.user && (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "INITIAL_SESSION")) {
+          // fetchInitialUserで既に同じユーザーがセットされている場合は重複処理をスキップ(簡易的にidでチェック)
+          setUser(prev => {
+            if (prev?.id === session.user.id) return prev;
+            handleSessionUser(session.user);
+            return prev;
+          })
         }
       }
     )
