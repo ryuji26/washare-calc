@@ -363,31 +363,33 @@ export const MyPage = ({
                         <CardContent className="p-4">
                             <div className="space-y-3">
                                 {/* 追加フォーム */}
-                                <div className="flex items-center gap-2 rounded-lg bg-secondary/50 p-2">
+                                <div className="flex flex-wrap items-center gap-2 rounded-lg bg-secondary/50 p-2 sm:flex-nowrap">
                                     <input
                                         type="text"
                                         placeholder="工程名 (例: ホイール清掃)"
                                         value={newCustomProcessName}
                                         onChange={(e) => setNewCustomProcessName(e.target.value)}
-                                        className="h-9 flex-1 rounded border border-border/50 bg-background px-2 text-[12px] text-foreground outline-none focus:ring-1 focus:ring-cyan-500/50"
+                                        className="h-9 min-w-0 flex-1 rounded border border-border/50 bg-background px-2 text-[12px] text-foreground outline-none focus:ring-1 focus:ring-cyan-500/50"
                                     />
-                                    <input
-                                        type="number"
-                                        placeholder="金額 (円)"
-                                        value={newCustomProcessCost}
-                                        onChange={(e) => setNewCustomProcessCost(e.target.value ? Number(e.target.value) : "")}
-                                        className="h-9 w-24 rounded border border-border/50 bg-background px-2 text-right text-[12px] tabular-nums text-foreground outline-none focus:ring-1 focus:ring-cyan-500/50"
-                                        min={0}
-                                        step={50}
-                                    />
-                                    <Button
-                                        onClick={handleAddCustomProcess}
-                                        disabled={!newCustomProcessName.trim() || newCustomProcessCost === ""}
-                                        size="sm"
-                                        className="h-9 bg-cyan-600 px-3 text-xs text-white hover:bg-cyan-700"
-                                    >
-                                        追加
-                                    </Button>
+                                    <div className="flex w-full items-center gap-2 sm:w-auto">
+                                        <input
+                                            type="number"
+                                            placeholder="金額 (円)"
+                                            value={newCustomProcessCost}
+                                            onChange={(e) => setNewCustomProcessCost(e.target.value ? Number(e.target.value) : "")}
+                                            className="h-9 w-24 flex-1 rounded border border-border/50 bg-background px-2 text-right text-[12px] tabular-nums text-foreground outline-none focus:ring-1 focus:ring-cyan-500/50 sm:flex-none"
+                                            min={0}
+                                            step={50}
+                                        />
+                                        <Button
+                                            onClick={handleAddCustomProcess}
+                                            disabled={!newCustomProcessName.trim() || newCustomProcessCost === ""}
+                                            size="sm"
+                                            className="h-9 shrink-0 bg-cyan-600 px-3 text-xs text-white hover:bg-cyan-700"
+                                        >
+                                            追加
+                                        </Button>
+                                    </div>
                                 </div>
 
                                 {/* リスト表示 */}
