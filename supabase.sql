@@ -8,7 +8,8 @@ create table public.profiles (
   id uuid references auth.users not null primary key,
   display_name text not null,
   area text not null,
-  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  default_process_costs jsonb default '{}'::jsonb not null
 );
 
 -- RLS（Row Level Security）有効化

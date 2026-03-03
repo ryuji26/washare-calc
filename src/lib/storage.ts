@@ -32,6 +32,7 @@ export const fetchUserProfile = async (userId: string): Promise<User | null> => 
         displayName: profile.display_name,
         area: profile.area,
         createdAt: profile.created_at,
+        defaultProcessCosts: profile.default_process_costs || {},
     }
 }
 
@@ -50,6 +51,23 @@ export const updateUserProfile = async (
 
     if (error) {
         console.error("updateUserProfile Error:", error)
+        throw error
+    }
+}
+
+export const updateUserProcessCosts = async (
+    userId: string,
+    costs: Record<string, number>
+): Promise<void> => {
+    const { error } = await supabase
+        .from("profiles")
+        .update({
+            default_process_costs: costs
+        })
+        .eq("id", userId)
+
+    if (error) {
+        console.error("updateUserProcessCosts Error:", error)
         throw error
     }
 }

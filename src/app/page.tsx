@@ -18,6 +18,7 @@ import {
   saveEstimateToDb,
   fetchEstimateFormData,
   deleteEstimate,
+  updateUserProcessCosts,
 } from "@/lib/storage"
 import {
   type EstimateFormData,
@@ -100,7 +101,15 @@ const Page = () => {
           }
 
           if (profile) {
-            setUser({ ...profile, email: session.user.email ?? "" })
+            const enrichedProfile = { ...profile, email: session.user.email ?? "" }
+            setUser(enrichedProfile)
+
+            // 初回ロード時にフォームにデフォルト原価を反映
+            setFormData(prev => ({
+              ...prev,
+              customCosts: enrichedProfile.defaultProcessCosts || {}
+            }))
+
             const userEsts = await fetchUserEstimates(session.user.id)
             setEstimates(userEsts)
           } else {
@@ -136,10 +145,15 @@ const Page = () => {
     window.scrollTo({ top: 0, behavior: "smooth" })
   }, [user])
 
-  // ホーム（入力画面）に戻る
+  // ホーム（入力画面）に戻る（リセット含む）
   const handleNavigateHome = useCallback(() => {
+    // フォームをリセットしつつ、ユーザーのデフォルト原価を適用
+    setFormData({
+      ...DEFAULT_FORM_DATA,
+      customCosts: user?.defaultProcessCosts || {}
+    })
     handleTabChange("input")
-  }, [handleTabChange])
+  }, [handleTabChange, user])
 
   // 見積書作成（プレビュー画面へ遷移）
   const handleCreateQuote = useCallback(() => {
@@ -223,6 +237,14 @@ const Page = () => {
     }
   }, [user])
 
+  // 原価設定の保存
+  const handleSaveProcessCosts = useCallback(async (costs: Record<string, number>) => {
+    if (!user) return
+    await updateUserProcessCosts(user.id, costs)
+    // ユーザー状態を更新
+    setUser(prev => prev ? { ...prev, defaultProcessCosts: costs } : null)
+  }, [user])
+
   // みんなの見積フィードからプレビューを表示
   const handleViewPublicEstimate = useCallback(async (estimateId: string) => {
     const fd = await fetchEstimateFormData(estimateId)
@@ -278,6 +300,7 @@ const Page = () => {
           onViewEstimate={handleViewEstimate}
           onDeleteEstimate={handleDeleteEstimate}
           onNavigateHome={handleNavigateHome}
+          onSaveProcessCosts={handleSaveProcessCosts}
         />
       )}
 

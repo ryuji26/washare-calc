@@ -48,6 +48,7 @@ export type User = {
     displayName: string // 屋号またはニックネーム
     area: string        // 活動エリア（都道府県）
     createdAt: string
+    defaultProcessCosts?: Record<string, number> // ユーザー定義のデフォルト原価設定
 }
 
 // 保存された見積もり

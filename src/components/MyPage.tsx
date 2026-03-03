@@ -1,10 +1,11 @@
 "use client"
 
-import { useMemo } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
+import { WASH_PROCESSES, CATEGORY_LABELS } from "@/lib/constants"
 import { type User, type SavedEstimate, type EstimateFormData } from "@/types"
 import { formatPrice } from "@/lib/calculator"
 
@@ -14,6 +15,7 @@ type MyPageProps = {
     onViewEstimate: (formData: EstimateFormData) => void
     onDeleteEstimate: (estimateId: string) => void
     onNavigateHome: () => void
+    onSaveProcessCosts?: (costs: Record<string, number>) => Promise<void>
 }
 
 export const MyPage = ({
@@ -22,22 +24,45 @@ export const MyPage = ({
     onViewEstimate,
     onDeleteEstimate,
     onNavigateHome,
+    onSaveProcessCosts,
 }: MyPageProps) => {
+    const [isSaving, setIsSaving] = useState(false)
+    const [editingCostId, setEditingCostId] = useState<string | null>(null)
+    const [localCosts, setLocalCosts] = useState<Record<string, number>>(
+        user.defaultProcessCosts || {}
+    )
+
     // 日付フォーマット
     const formatDate = (iso: string): string => {
         const d = new Date(iso)
         return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`
     }
 
-    // ダミー工程設定データ
-    const customProcesses = useMemo(
-        () => [
-            { name: "オリジナルコーティング", cost: 5000 },
-            { name: "レザーシートクリーニング", cost: 3000 },
-            { name: "エンジンルーム洗浄", cost: 2000 },
-        ],
-        []
-    )
+    // 工程の現在の原価を取得（カスタム値があれば優先、なければ標準原価）
+    const getCost = (processId: string, defaultCost: number): number => {
+        return localCosts[processId] ?? defaultCost
+    }
+
+    // 原価をローカル状態に更新
+    const updateLocalCost = (processId: string, cost: number) => {
+        setLocalCosts((prev) => ({ ...prev, [processId]: cost }))
+    }
+
+    // 保存処理
+    const handleSaveCosts = async () => {
+        if (!onSaveProcessCosts) return
+        setIsSaving(true)
+        try {
+            await onSaveProcessCosts(localCosts)
+            alert("原価設定を保存しました。")
+        } catch (error) {
+            alert("原価設定の保存に失敗しました。")
+        } finally {
+            setIsSaving(false)
+        }
+    }
+
+
 
     return (
         <div className="min-h-screen bg-background pb-24">
@@ -175,43 +200,94 @@ export const MyPage = ({
 
                 <Separator className="bg-border/30" />
 
-                {/* オリジナル工程・ケミカルの原価設定（ダミー） */}
+                {/* カスタム原価設定 */}
                 <div>
                     <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
                         <svg className="h-4 w-4 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                             <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
-                        オリジナル工程・原価設定
-                        <Badge variant="secondary" className="ml-auto text-[10px]">
-                            Coming Soon
-                        </Badge>
+                        標準工程・原価設定
+                        <div className="ml-auto text-[10px] text-muted-foreground">
+                            ※ここでの設定が新規作成時のデフォルト原価になります
+                        </div>
                     </h3>
 
                     <Card className="border-border/50 bg-card/50">
                         <CardContent className="p-4">
                             <div className="space-y-3">
-                                {customProcesses.map((proc) => (
-                                    <div
-                                        key={proc.name}
-                                        className="flex items-center justify-between rounded-lg bg-secondary/30 px-3 py-2.5"
-                                    >
-                                        <span className="text-sm text-muted-foreground">
-                                            {proc.name}
-                                        </span>
-                                        <span className="text-sm font-bold tabular-nums text-foreground">
-                                            ¥{proc.cost.toLocaleString()}
-                                        </span>
+                                {Object.entries(
+                                    WASH_PROCESSES.reduce((acc, proc) => {
+                                        if (!acc[proc.category]) acc[proc.category] = []
+                                        acc[proc.category].push(proc)
+                                        return acc
+                                    }, {} as Record<string, typeof WASH_PROCESSES>)
+                                ).map(([category, processes]) => (
+                                    <div key={category} className="mb-4 last:mb-0">
+                                        <div className="mb-2 text-xs font-semibold text-muted-foreground">
+                                            {CATEGORY_LABELS[category] || category}
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            {processes.map((proc) => {
+                                                const currentCost = getCost(proc.id, proc.unitCost)
+                                                const isCustom = localCosts[proc.id] !== undefined
+                                                const isEditing = editingCostId === proc.id
+
+                                                return (
+                                                    <div
+                                                        key={proc.id}
+                                                        className="flex items-center justify-between rounded-lg bg-secondary/30 px-3 py-2"
+                                                    >
+                                                        <span className="text-sm text-foreground">
+                                                            {proc.name}
+                                                        </span>
+                                                        {isEditing ? (
+                                                            <input
+                                                                type="number"
+                                                                defaultValue={currentCost}
+                                                                autoFocus
+                                                                onBlur={(e) => {
+                                                                    const val = Number(e.target.value)
+                                                                    if (!isNaN(val) && val >= 0) {
+                                                                        updateLocalCost(proc.id, val)
+                                                                    }
+                                                                    setEditingCostId(null)
+                                                                }}
+                                                                onKeyDown={(e) => {
+                                                                    if (e.key === "Enter") {
+                                                                        (e.target as HTMLInputElement).blur()
+                                                                    }
+                                                                }}
+                                                                className="w-20 rounded border border-cyan-500/50 bg-background px-2 py-1 text-right text-[11px] tabular-nums text-foreground outline-none focus:ring-1 focus:ring-cyan-500/50"
+                                                                min={0}
+                                                                step={50}
+                                                            />
+                                                        ) : (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setEditingCostId(proc.id)}
+                                                                className={`rounded px-1.5 py-0.5 text-sm tabular-nums transition-colors hover:bg-secondary/50 font-bold ${isCustom ? "text-cyan-400" : "text-muted-foreground"}`}
+                                                                title="タップで原価を編集"
+                                                            >
+                                                                ¥{currentCost.toLocaleString()}
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                )
+                                            })}
+                                        </div>
                                     </div>
                                 ))}
                             </div>
-                            <Button
-                                variant="outline"
-                                className="mt-4 h-10 w-full border-dashed border-border/50 text-xs text-muted-foreground"
-                                disabled
-                            >
-                                + オリジナル工程を追加（準備中）
-                            </Button>
+                            {onSaveProcessCosts && (
+                                <Button
+                                    onClick={handleSaveCosts}
+                                    disabled={isSaving}
+                                    className="mt-4 h-10 w-full bg-gradient-to-r from-cyan-500 to-blue-600 font-bold text-white shadow-md shadow-cyan-500/20"
+                                >
+                                    {isSaving ? "保存中..." : "原価設定を保存する"}
+                                </Button>
+                            )}
                         </CardContent>
                     </Card>
                 </div>
