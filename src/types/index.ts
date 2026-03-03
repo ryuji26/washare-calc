@@ -41,6 +41,13 @@ export type TabId = "input" | "explore" | "mypage"
 // 認証モーダルの状態
 export type AuthModalMode = "login" | "register" | null
 
+export type CustomProcess = {
+    id: string
+    name: string
+    unitCost: number
+    category: ProcessCategory
+}
+
 // ユーザー情報
 export type User = {
     id: string
@@ -49,6 +56,7 @@ export type User = {
     area: string        // 活動エリア（都道府県）
     createdAt: string
     defaultProcessCosts?: Record<string, number> // ユーザー定義のデフォルト原価設定
+    customProcesses?: CustomProcess[] // オリジナル工程
 }
 
 // 保存された見積もり

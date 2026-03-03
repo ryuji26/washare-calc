@@ -19,6 +19,7 @@ import {
   fetchEstimateFormData,
   deleteEstimate,
   updateUserProcessCosts,
+  updateUserCustomProcesses,
 } from "@/lib/storage"
 import {
   type EstimateFormData,
@@ -245,6 +246,14 @@ const Page = () => {
     setUser(prev => prev ? { ...prev, defaultProcessCosts: costs } : null)
   }, [user])
 
+  // カスタム工程の保存
+  const handleSaveCustomProcesses = useCallback(async (processes: NonNullable<User["customProcesses"]>) => {
+    if (!user) return
+    await updateUserCustomProcesses(user.id, processes)
+    // ユーザー状態を更新
+    setUser(prev => prev ? { ...prev, customProcesses: processes } : null)
+  }, [user])
+
   // みんなの見積フィードからプレビューを表示
   const handleViewPublicEstimate = useCallback(async (estimateId: string) => {
     const fd = await fetchEstimateFormData(estimateId)
@@ -283,6 +292,7 @@ const Page = () => {
           formData={formData}
           onFormDataChange={setFormData}
           onCreateQuote={handleCreateQuote}
+          userCustomProcesses={user?.customProcesses || []}
         />
       )}
 
@@ -301,6 +311,7 @@ const Page = () => {
           onDeleteEstimate={handleDeleteEstimate}
           onNavigateHome={handleNavigateHome}
           onSaveProcessCosts={handleSaveProcessCosts}
+          onSaveCustomProcesses={handleSaveCustomProcesses}
         />
       )}
 

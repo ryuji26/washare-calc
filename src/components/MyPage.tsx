@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { WASH_PROCESSES, CATEGORY_LABELS } from "@/lib/constants"
-import { type User, type SavedEstimate, type EstimateFormData } from "@/types"
+import { type User, type SavedEstimate, type EstimateFormData, type CustomProcess } from "@/types"
 import { formatPrice } from "@/lib/calculator"
 
 type MyPageProps = {
@@ -16,6 +16,7 @@ type MyPageProps = {
     onDeleteEstimate: (estimateId: string) => void
     onNavigateHome: () => void
     onSaveProcessCosts?: (costs: Record<string, number>) => Promise<void>
+    onSaveCustomProcesses?: (processes: import("@/types").CustomProcess[]) => Promise<void>
 }
 
 export const MyPage = ({
@@ -25,12 +26,22 @@ export const MyPage = ({
     onDeleteEstimate,
     onNavigateHome,
     onSaveProcessCosts,
+    onSaveCustomProcesses,
 }: MyPageProps) => {
     const [isSaving, setIsSaving] = useState(false)
     const [editingCostId, setEditingCostId] = useState<string | null>(null)
     const [localCosts, setLocalCosts] = useState<Record<string, number>>(
         user.defaultProcessCosts || {}
     )
+
+    // カスタム工程のローカル状態
+    const [localCustomProcesses, setLocalCustomProcesses] = useState<CustomProcess[]>(
+        user.customProcesses || []
+    )
+    const [editingCustomProcessId, setEditingCustomProcessId] = useState<string | null>(null)
+    const [newCustomProcessName, setNewCustomProcessName] = useState("")
+    const [newCustomProcessCost, setNewCustomProcessCost] = useState<number | "">("")
+    const [isSavingCustom, setIsSavingCustom] = useState(false)
 
     // 日付フォーマット
     const formatDate = (iso: string): string => {
@@ -59,6 +70,50 @@ export const MyPage = ({
             alert("原価設定の保存に失敗しました。")
         } finally {
             setIsSaving(false)
+        }
+    }
+
+    // カスタム工程の追加
+    const handleAddCustomProcess = () => {
+        if (!newCustomProcessName.trim() || newCustomProcessCost === "") return
+
+        const newProcess: CustomProcess = {
+            id: `custom_${Date.now()}`,
+            name: newCustomProcessName.trim(),
+            unitCost: Number(newCustomProcessCost),
+            category: "detail", // デフォルトはディテーリング扱いとする（現状カテゴリによる挙動差分は少ないため）
+        }
+
+        setLocalCustomProcesses([...localCustomProcesses, newProcess])
+        setNewCustomProcessName("")
+        setNewCustomProcessCost("")
+    }
+
+    // カスタム工程の実質更新（インライン編集時）
+    const updateCustomProcess = (id: string, updates: Partial<CustomProcess>) => {
+        setLocalCustomProcesses(prev =>
+            prev.map(p => p.id === id ? { ...p, ...updates } : p)
+        )
+    }
+
+    // カスタム工程の削除
+    const handleDeleteCustomProcess = (id: string) => {
+        if (window.confirm("このオリジナル工程を削除しますか？")) {
+            setLocalCustomProcesses(prev => prev.filter(p => p.id !== id))
+        }
+    }
+
+    // カスタム工程の保存処理
+    const handleSaveCustomProcessesToDb = async () => {
+        if (!onSaveCustomProcesses) return
+        setIsSavingCustom(true)
+        try {
+            await onSaveCustomProcesses(localCustomProcesses)
+            alert("オリジナル工程を保存しました。")
+        } catch (error) {
+            alert("オリジナル工程の保存に失敗しました。")
+        } finally {
+            setIsSavingCustom(false)
         }
     }
 
@@ -286,6 +341,151 @@ export const MyPage = ({
                                     className="mt-4 h-10 w-full bg-gradient-to-r from-cyan-500 to-blue-600 font-bold text-white shadow-md shadow-cyan-500/20"
                                 >
                                     {isSaving ? "保存中..." : "原価設定を保存する"}
+                                </Button>
+                            )}
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* オリジナル工程追加UI */}
+                <div>
+                    <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
+                        <svg className="h-4 w-4 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                        </svg>
+                        オリジナル工程・原価設定
+                        <div className="ml-auto text-[10px] text-muted-foreground">
+                            ※独自メニューを追加できます
+                        </div>
+                    </h3>
+
+                    <Card className="border-border/50 bg-card/50">
+                        <CardContent className="p-4">
+                            <div className="space-y-3">
+                                {/* 追加フォーム */}
+                                <div className="flex items-center gap-2 rounded-lg bg-secondary/50 p-2">
+                                    <input
+                                        type="text"
+                                        placeholder="工程名 (例: ホイール清掃)"
+                                        value={newCustomProcessName}
+                                        onChange={(e) => setNewCustomProcessName(e.target.value)}
+                                        className="h-9 flex-1 rounded border border-border/50 bg-background px-2 text-[12px] text-foreground outline-none focus:ring-1 focus:ring-cyan-500/50"
+                                    />
+                                    <input
+                                        type="number"
+                                        placeholder="金額 (円)"
+                                        value={newCustomProcessCost}
+                                        onChange={(e) => setNewCustomProcessCost(e.target.value ? Number(e.target.value) : "")}
+                                        className="h-9 w-24 rounded border border-border/50 bg-background px-2 text-right text-[12px] tabular-nums text-foreground outline-none focus:ring-1 focus:ring-cyan-500/50"
+                                        min={0}
+                                        step={50}
+                                    />
+                                    <Button
+                                        onClick={handleAddCustomProcess}
+                                        disabled={!newCustomProcessName.trim() || newCustomProcessCost === ""}
+                                        size="sm"
+                                        className="h-9 bg-cyan-600 px-3 text-xs text-white hover:bg-cyan-700"
+                                    >
+                                        追加
+                                    </Button>
+                                </div>
+
+                                {/* リスト表示 */}
+                                <div className="mt-4 space-y-1.5">
+                                    {localCustomProcesses.length === 0 ? (
+                                        <div className="py-2 text-center text-xs text-muted-foreground">
+                                            オリジナル工程はまだありません
+                                        </div>
+                                    ) : (
+                                        localCustomProcesses.map((proc) => {
+                                            const isEditing = editingCustomProcessId === proc.id
+                                            return (
+                                                <div
+                                                    key={proc.id}
+                                                    className="flex items-center justify-between rounded-lg bg-secondary/30 px-3 py-2"
+                                                >
+                                                    {isEditing ? (
+                                                        <input
+                                                            type="text"
+                                                            defaultValue={proc.name}
+                                                            onBlur={(e) => {
+                                                                if (e.target.value.trim()) {
+                                                                    updateCustomProcess(proc.id, { name: e.target.value.trim() })
+                                                                }
+                                                                setEditingCustomProcessId(null)
+                                                            }}
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === "Enter") {
+                                                                    (e.target as HTMLInputElement).blur()
+                                                                }
+                                                            }}
+                                                            className="flex-1 rounded border border-cyan-500/50 bg-background px-2 py-1 text-[12px] text-foreground outline-none"
+                                                            autoFocus
+                                                        />
+                                                    ) : (
+                                                        <span
+                                                            onClick={() => setEditingCustomProcessId(proc.id)}
+                                                            className="text-sm font-medium text-foreground cursor-pointer hover:text-cyan-400 transition-colors"
+                                                            title="タップで名前を編集"
+                                                        >
+                                                            {proc.name}
+                                                        </span>
+                                                    )}
+
+                                                    <div className="flex items-center gap-2">
+                                                        {isEditing ? (
+                                                            <input
+                                                                type="number"
+                                                                defaultValue={proc.unitCost}
+                                                                onBlur={(e) => {
+                                                                    const val = Number(e.target.value)
+                                                                    if (!isNaN(val) && val >= 0) {
+                                                                        updateCustomProcess(proc.id, { unitCost: val })
+                                                                    }
+                                                                }}
+                                                                onKeyDown={(e) => {
+                                                                    if (e.key === "Enter") {
+                                                                        (e.target as HTMLInputElement).blur()
+                                                                    }
+                                                                }}
+                                                                className="w-20 rounded border border-cyan-500/50 bg-background px-2 py-1 text-right text-[11px] tabular-nums text-foreground outline-none"
+                                                                min={0}
+                                                                step={50}
+                                                            />
+                                                        ) : (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setEditingCustomProcessId(proc.id)}
+                                                                className="rounded px-1.5 py-0.5 text-sm tabular-nums font-bold text-cyan-400 hover:bg-secondary/50 transition-colors"
+                                                                title="タップで金額を編集"
+                                                            >
+                                                                ¥{proc.unitCost.toLocaleString()}
+                                                            </button>
+                                                        )}
+                                                        <button
+                                                            onClick={() => handleDeleteCustomProcess(proc.id)}
+                                                            className="ml-1 text-muted-foreground hover:text-red-500 transition-colors p-1"
+                                                            title="削除"
+                                                        >
+                                                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                            </svg>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )
+                                        })
+                                    )}
+                                </div>
+                            </div>
+
+                            {onSaveCustomProcesses && (
+                                <Button
+                                    onClick={handleSaveCustomProcessesToDb}
+                                    disabled={isSavingCustom}
+                                    className="mt-4 h-10 w-full bg-gradient-to-r from-cyan-500 to-blue-600 font-bold text-white shadow-md shadow-cyan-500/20"
+                                >
+                                    {isSavingCustom ? "保存中..." : "オリジナル工程を保存する"}
                                 </Button>
                             )}
                         </CardContent>

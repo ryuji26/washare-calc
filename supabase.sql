@@ -9,7 +9,8 @@ create table public.profiles (
   display_name text not null,
   area text not null,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
-  default_process_costs jsonb default '{}'::jsonb not null
+  default_process_costs jsonb default '{}'::jsonb not null,
+  custom_processes jsonb default '[]'::jsonb not null
 );
 
 -- RLS（Row Level Security）有効化

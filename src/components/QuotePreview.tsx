@@ -33,13 +33,20 @@ export const QuotePreview = ({
         formData.workMinutes,
         formData.customCosts,
         formData.vehicleSize,
-        formData.polishingPasses
+        formData.polishingPasses,
+        user?.customProcesses || []
     )
 
     // 選択された工程
-    const selectedProcesses = WASH_PROCESSES.filter((p) =>
-        formData.selectedProcessIds.includes(p.id)
-    )
+    const selectedProcesses = formData.selectedProcessIds
+        .map((id) => {
+            const process = WASH_PROCESSES.find((p) => p.id === id)
+            if (process) return process
+            const customProcess = user?.customProcesses?.find((p) => p.id === id)
+            if (customProcess) return customProcess
+            return null
+        })
+        .filter((p): p is NonNullable<typeof p> => !!p)
 
     // 車両サイズ表示
     const vehicleLabel =

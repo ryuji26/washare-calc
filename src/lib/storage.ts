@@ -1,5 +1,5 @@
 import { createClient } from "@/utils/supabase/client"
-import { type User, type SavedEstimate, type EstimateFormData, type PublicEstimate } from "@/types"
+import { type User, type SavedEstimate, type EstimateFormData, type PublicEstimate, type CustomProcess } from "@/types"
 import { WASH_PROCESSES, VEHICLE_SIZES } from "@/lib/constants"
 import { calculateEstimate } from "@/lib/calculator"
 
@@ -33,6 +33,7 @@ export const fetchUserProfile = async (userId: string): Promise<User | null> => 
         area: profile.area,
         createdAt: profile.created_at,
         defaultProcessCosts: profile.default_process_costs || {},
+        customProcesses: profile.custom_processes || [],
     }
 }
 
@@ -68,6 +69,23 @@ export const updateUserProcessCosts = async (
 
     if (error) {
         console.error("updateUserProcessCosts Error:", error)
+        throw error
+    }
+}
+
+export const updateUserCustomProcesses = async (
+    userId: string,
+    processes: CustomProcess[]
+): Promise<void> => {
+    const { error } = await supabase
+        .from("profiles")
+        .update({
+            custom_processes: processes
+        })
+        .eq("id", userId)
+
+    if (error) {
+        console.error("updateUserCustomProcesses Error:", error)
         throw error
     }
 }
@@ -153,7 +171,8 @@ export const fetchEstimateFormData = async (estimateId: string): Promise<Estimat
 
 export const saveEstimateToDb = async (
     userId: string,
-    formData: EstimateFormData
+    formData: EstimateFormData,
+    userCustomProcesses: CustomProcess[] = []
 ): Promise<SavedEstimate | null> => {
     const calc = calculateEstimate(
         formData.selectedProcessIds,
@@ -162,11 +181,18 @@ export const saveEstimateToDb = async (
         formData.workMinutes,
         formData.customCosts,
         formData.vehicleSize,
-        formData.polishingPasses
+        formData.polishingPasses,
+        userCustomProcesses
     )
 
     const processNames = formData.selectedProcessIds
-        .map((id) => WASH_PROCESSES.find((p) => p.id === id)?.name)
+        .map((id) => {
+            const standard = WASH_PROCESSES.find((p) => p.id === id)
+            if (standard) return standard.name
+            const custom = userCustomProcesses.find((p) => p.id === id)
+            if (custom) return custom.name
+            return null
+        })
         .filter((name): name is string => !!name)
 
     const vehicleSizeLabel =

@@ -24,18 +24,20 @@ import {
     SIZE_MULTIPLIERS,
 } from "@/lib/constants"
 import { calculateEstimate, calcPolishingCost, formatPrice } from "@/lib/calculator"
-import { type EstimateFormData, type ProcessCategory } from "@/types"
+import { type EstimateFormData, type ProcessCategory, type CustomProcess } from "@/types"
 
 type InputFormProps = {
     formData: EstimateFormData
     onFormDataChange: (data: EstimateFormData) => void
     onCreateQuote: () => void
+    userCustomProcesses?: CustomProcess[]
 }
 
 export const InputForm = ({
     formData,
     onFormDataChange,
     onCreateQuote,
+    userCustomProcesses = [],
 }: InputFormProps) => {
     // 工程カテゴリの開閉状態
     const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({
@@ -44,6 +46,7 @@ export const InputForm = ({
         detail: true,
         coating: true,
         interior: true,
+        custom: true,
     })
 
     // 原価編集中の工程ID
@@ -51,15 +54,25 @@ export const InputForm = ({
 
     // カテゴリごとに工程をグループ化
     const groupedProcesses = useMemo(() => {
-        const groups: Record<string, typeof WASH_PROCESSES> = {}
+        // 標準工程とカスタム工程をマージする型定義
+        const groups: Record<string, Array<{ id: string, name: string, unitCost: number, category: ProcessCategory | "custom" }>> = {}
         for (const process of WASH_PROCESSES) {
             if (!groups[process.category]) {
                 groups[process.category] = []
             }
             groups[process.category].push(process)
         }
+
+        // ユーザー定義のオリジナル工程があれば追加
+        if (userCustomProcesses.length > 0) {
+            groups["custom"] = userCustomProcesses.map(p => ({
+                ...p,
+                category: "custom" as const
+            }))
+        }
+
         return groups
-    }, [])
+    }, [userCustomProcesses])
 
     // 工程の現在の原価を取得（カスタム値があればそちらを優先）
     const getCost = (processId: string, defaultCost: number): number => {
@@ -87,9 +100,10 @@ export const InputForm = ({
                 formData.workMinutes,
                 formData.customCosts,
                 formData.vehicleSize,
-                formData.polishingPasses
+                formData.polishingPasses,
+                userCustomProcesses
             ),
-        [formData]
+        [formData, userCustomProcesses]
     )
 
     // 現在の研磨単価（サイズ倍率適用済み）
@@ -334,10 +348,10 @@ export const InputForm = ({
                                         >
                                             <div className="flex items-center gap-2">
                                                 <span className="text-base">
-                                                    {CATEGORY_ICONS[category]}
+                                                    {category === "custom" ? "✨" : CATEGORY_ICONS[category as string]}
                                                 </span>
                                                 <span className="text-sm font-semibold text-foreground">
-                                                    {CATEGORY_LABELS[category]}
+                                                    {category === "custom" ? "オリジナル工程" : CATEGORY_LABELS[category as string]}
                                                 </span>
                                                 {selectedCount > 0 && (
                                                     <Badge
