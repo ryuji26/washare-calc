@@ -235,6 +235,12 @@ const Page = () => {
     setUser(loggedInUser)
     setAuthModalMode(null)
 
+    // ログイン時にデフォルト原価をフォームに反映
+    setFormData(prev => ({
+      ...prev,
+      customCosts: loggedInUser.defaultProcessCosts || {}
+    }))
+
     if (viewMode === "preview") {
       handleSaveEstimate(loggedInUser)
     }
@@ -267,6 +273,8 @@ const Page = () => {
     await updateUserProcessCosts(user.id, costs)
     // ユーザー状態を更新
     setUser(prev => prev ? { ...prev, defaultProcessCosts: costs } : null)
+    // 入力フォーム側の原価も同期する
+    setFormData(prev => ({ ...prev, customCosts: costs }))
   }, [user])
 
   // カスタム工程の保存
